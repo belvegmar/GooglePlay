@@ -1,0 +1,33 @@
+---
+title: "GooglePlay"
+author: "Belen_Miguel"
+date: "18 de diciembre de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r cars}
+datos <- read.csv(file="googleplaystore.csv", header=TRUE, sep=",")
+```
+
+# Limpieza de datos y transformación
+El primer paso será hacer un preprocesamiento de cada uno de los atributos con vista a obtener mejores resultados en los algoritmos de minería de datos
+
+## Size
+It can be seen that data has metric prefixes (Kilo and Mega) along with another string. Replacing k and M with their values to convert values to numeric.
+```{r}
+for (i in 1:nrow(datos)) { 
+  print(datos["Size",i])
+}
+
+```
+
+
+```{r}
+
+```
+
+
