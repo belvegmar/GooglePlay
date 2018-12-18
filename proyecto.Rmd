@@ -10,7 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r cars}
-datos <- read.csv(file="googleplaystore.csv", header=TRUE, sep=",")
+datos <- read.csv(file="googleplaystore.csv", header=TRUE, sep=",", stringsAsFactors = FALSE)
+
 ```
 
 # Limpieza de datos y transformación
@@ -18,10 +19,31 @@ El primer paso será hacer un preprocesamiento de cada uno de los atributos con 
 
 ## Size
 It can be seen that data has metric prefixes (Kilo and Mega) along with another string. Replacing k and M with their values to convert values to numeric.
+- Replacing 'Varies with Device' by nan and
+- Converting 1,000+ to 1000, to make it numeric
 ```{r}
-for (i in 1:nrow(datos)) { 
-  print(datos["Size",i])
+print(head(datos$Size))
+```
+
+
+```{r}
+for (i in 1:length(datos$Size)) { 
+  if(grepl("M",datos$Size[i])){
+    numero <- as.numeric(gsub("M", "e+06", datos$Size[i]))
+    datos$Size[i]<- numero
+  } else if (grepl("k", datos$Size[i])){
+    numero <- as.numeric(gsub("k", "e+03", datos$Size[i]))
+    datos$Size[i] <- numero
+  }else if (grepl("Varies", datos$Size[i])){
+    datos$Size[i] <- NaN
+  }else{
+    datos$Size[i]<-1000
+  }
 }
+
+datos$Size <- as.numeric(datos$Size)
+
+print(head(datos$Size))
 
 ```
 
