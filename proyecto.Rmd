@@ -8,7 +8,12 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+```{r}
+install.packages(c("plyr"))
+library("plyr")
+```
 
+Lectura de los datos
 ```{r cars}
 datos <- read.csv(file="googleplaystore.csv", header=TRUE, sep=",", stringsAsFactors = FALSE)
 
@@ -47,9 +52,25 @@ print(head(datos$Size))
 
 ```
 
-
+## Reviews
+Comprobaremos si los valores del atributo "Reviews" son de tipo numérico:
 ```{r}
+datos$Reviews <- as.numeric(datos$Reviews)
 
 ```
+Se puede observar que al convertir la columna a número, un valor no se ha podido convertir, ya que no había forma. Daremos un vistazo previo a esta fila:
+```{r}
+for (i in 1:length(datos$Reviews)) {
+  if(is.na(datos$Reviews[i])){
+    print(i)
+    print(datos[i,])
+    datos <- datos[-i,]
+    
+  }
+}
 
+print(datos[10471:10480,])
+
+```
+Como solo es una fila, se optará por eliminarla directamente. En la representación de arriba se ve cómo ha desaparecido del dataframe.
 
