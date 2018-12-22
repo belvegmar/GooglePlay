@@ -8,8 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-```{r}
-install.packages(c("plyr"))
+```{r, include=FALSE}
+#install.packages(c("plyr"))
 library("plyr")
 ```
 
@@ -73,4 +73,35 @@ print(datos[10471:10480,])
 
 ```
 Como solo es una fila, se optará por eliminarla directamente. En la representación de arriba se ve cómo ha desaparecido del dataframe.
+
+## Price
+```{r}
+print(unique(datos$Price))
+```
+Se puede observar que la variable precio tiene un carácter $ que hay que eliminar para poder convertirlo en número. Además, hay varias columnas que tienen valores raros, estas filas las eliminaremos
+```{r}
+for (i in 1:length(datos$Price)){
+  datos$Price[i] <- as.numeric((gsub("\\$","", datos$Price[i])))
+}
+#Eliminar valores NAN
+for (i in 1:length(datos$Price)){
+  if(is.na(datos$Price[i])){
+    print(i)
+    print(datos[i,])
+    datos <- datos[-i,]
+    
+  }
+}
+
+```
+Lo más curioso es que hay aplicaciones que superan los 350 dólares, tal como se puede ver a continuación:
+```{r}
+hist(as.numeric(datos$Price), col="blue1")
+for (i in 1:length(datos$Price)){
+  if(as.numeric(datos$Price[i])>350){
+    print(datos[i,])
+  }
+}
+
+```
 
