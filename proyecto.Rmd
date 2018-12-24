@@ -20,9 +20,22 @@ datos <- read.csv(file="googleplaystore.csv", header=TRUE, sep=",", stringsAsFac
 ```
 
 # Limpieza de datos y transformación
+
 El primer paso será hacer un preprocesamiento de cada uno de los atributos con vista a obtener mejores resultados en los algoritmos de minería de datos
 
+## Identificar valores nulos
+```{r}
+sapply(datos, function (x) sum(is.nan(x)))
+```
+
+## Borrar filas con valores nullos o NaNs
+```{r}
+datos <- na.omit(datos)
+```
+
+
 ## Size
+
 It can be seen that data has metric prefixes (Kilo and Mega) along with another string. Replacing k and M with their values to convert values to numeric.
 - Replacing 'Varies with Device' by nan and
 - Converting 1,000+ to 1000, to make it numeric
