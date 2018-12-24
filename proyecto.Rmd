@@ -33,12 +33,19 @@ sapply(datos, function (x) sum(is.nan(x)))
 datos <- na.omit(datos)
 ```
 
+## Volvemos a comprobar valores nulos removidos
+```{r}
+sapply(datos, function (x) sum(is.nan(x)))
+```
+
+
 
 ## Size
 
-It can be seen that data has metric prefixes (Kilo and Mega) along with another string. Replacing k and M with their values to convert values to numeric.
-- Replacing 'Varies with Device' by nan and
-- Converting 1,000+ to 1000, to make it numeric
+Se puede ver que los datos tienen prefijos métricos (Kilo y Mega) junto con otra cadena. Reemplazando K y M con sus valores para convertir valores a números.
+- Sustitución de 'Varía con el dispositivo' por nan y
+- Convertir 1000+ a 1000, para hacerlo numérico.
+
 ```{r}
 print(head(datos$Size))
 ```
