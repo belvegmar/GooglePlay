@@ -104,7 +104,7 @@ print(datos[10471:10480,])
 ```
 Como solo es una fila, se optará por eliminarla directamente. En la representación de arriba se ve cómo ha desaparecido del dataframe.
 
-## Convertir "Installs" en numeric
+## Convertir "Installs" en numerico
 Removemos el simbolo de mas (+) y luego convertimos a numerico. Comprobamos los cambios.
 
 ```{r}
