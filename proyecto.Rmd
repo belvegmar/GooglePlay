@@ -104,8 +104,8 @@ print(datos[10471:10480,])
 ```
 Como solo es una fila, se optará por eliminarla directamente. En la representación de arriba se ve cómo ha desaparecido del dataframe.
 
-## Convertir "Installs" en numerico
-Removemos el simbolo de mas (+) y luego convertimos a numerico. Comprobamos los cambios.
+## Convertir "Installs" en numeric
+Removemos el simbolo (+) y luego convertimos a numerico. Comprobamos los cambios.
 
 ```{r}
 datos$Installs <- as.numeric(gsub(",", "", gsub("+", "", datos$Installs, fixed = TRUE), fixed=TRUE))
