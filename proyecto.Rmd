@@ -13,11 +13,21 @@ knitr::opts_chunk$set(echo = TRUE)
 library("plyr")
 ```
 
-Lectura de los datos
+# Lectura de los datos
 ```{r cars}
 datos <- read.csv(file="googleplaystore.csv", header=TRUE, sep=",", stringsAsFactors = FALSE)
 
 ```
+
+# Echamos un vistazo al dataset
+```{r}
+str(datos)
+
+```
+
+
+
+
 
 # Limpieza de datos y transformación
 
@@ -93,6 +103,17 @@ print(datos[10471:10480,])
 
 ```
 Como solo es una fila, se optará por eliminarla directamente. En la representación de arriba se ve cómo ha desaparecido del dataframe.
+
+## Convertir "Installs" en numeric
+Removemos el simbolo de mas (+) y luego convertimos a numerico. Comprobamos los cambios.
+
+```{r}
+datos$Installs <- as.numeric(gsub(",", "", gsub("+", "", datos$Installs, fixed = TRUE), fixed=TRUE))
+options("scipen"=100, "digits"=4)
+str(datos$Installs)
+print(unique(datos$Installs))
+```
+
 
 ## Price
 ```{r}
