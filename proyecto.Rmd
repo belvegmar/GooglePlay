@@ -2,7 +2,9 @@
 title: "GooglePlay"
 author: "Belen_Miguel"
 date: "18 de diciembre de 2018"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -24,10 +26,6 @@ datos <- read.csv(file="googleplaystore.csv", header=TRUE, sep=",", stringsAsFac
 str(datos)
 
 ```
-
-
-
-
 
 # Limpieza de datos y transformación
 
@@ -51,6 +49,7 @@ sapply(datos, function (x) sum(is.nan(x)))
 
 
 ## Size
+<<<<<<< HEAD
 
 Se puede ver que los datos tienen prefijos métricos (Kilo y Mega) junto con otra cadena. Reemplazando K y M con sus valores para convertir valores a números.
 - Sustitución de 'Varía con el dispositivo' por nan y
@@ -59,7 +58,14 @@ Se puede ver que los datos tienen prefijos métricos (Kilo y Mega) junto con otr
 ```{r}
 print(head(datos$Size))
 ```
+=======
+Se puede obsrevar que los datos del tamaño de las aplicaciones tienen prefijos métricos (Kilo y Mega). Para poder hacer un análisis de datos efectivo, se eliminarán estos símbolos por sus correspondientes equivalencias numéricas.
+Además de estos símbolos hay apps cuyo tamaño varían con el dispositivo ("Varies with devices"), estos ejemplos se sustituirán por valores nulos. Por otro lado, también hay instancias que tienen como valor "1000+", estas se sustituirán por 1000. En resumen, las tareas que se van a realizar son las siguientes:
+>>>>>>> 2d6851abfab162d3632b84efc01b6492f9c6b4c8
 
+* Reemplazar "Varies with devices" por NaN
+* Convertir k y M a numérico
+* Pasar 1.000+ a 1000 para hacerlo numérico
 
 ```{r}
 for (i in 1:length(datos$Size)) { 
@@ -77,8 +83,6 @@ for (i in 1:length(datos$Size)) {
 }
 
 datos$Size <- as.numeric(datos$Size)
-
-print(head(datos$Size))
 
 ```
 
@@ -105,6 +109,7 @@ print(datos[10471:10480,])
 Como solo es una fila, se optará por eliminarla directamente. En la representación de arriba se ve cómo ha desaparecido del dataframe.
 
 ## Convertir "Installs" en numeric
+
 Removemos el simbolo (+) y luego convertimos a numerico. Comprobamos los cambios.
 
 ```{r}
@@ -119,7 +124,7 @@ print(unique(datos$Installs))
 ```{r}
 print(unique(datos$Price))
 ```
-Se puede observar que la variable precio tiene un carácter $ que hay que eliminar para poder convertirlo en número. Además, hay varias columnas que tienen valores raros, estas filas las eliminaremos
+Se puede observar que la variable precio tiene un carácter $ que hay que eliminar para poder convertirlo en número. Además, hay varias columnas que tienen valores raros ("Everyone"), estas filas las eliminaremos
 ```{r}
 for (i in 1:length(datos$Price)){
   datos$Price[i] <- as.numeric((gsub("\\$","", datos$Price[i])))
@@ -135,7 +140,7 @@ for (i in 1:length(datos$Price)){
 }
 
 ```
-Lo más curioso es que hay aplicaciones que superan los 350 dólares, tal como se puede ver a continuación:
+Lo más curioso es que hay aplicaciones que superan los 350 dólares, tal como se puede ver en el histograma a continuación:
 ```{r}
 hist(as.numeric(datos$Price), col="blue1")
 for (i in 1:length(datos$Price)){
@@ -143,6 +148,38 @@ for (i in 1:length(datos$Price)){
     print(datos[i,])
   }
 }
+
+```
+## Last updated
+Convertir la fecha que está en formato String a Date
+```{r}
+for (i in 1:length(datos$Last.Updated)){
+  datos$FechaUltima[i]<-as.Date(as.character(datos$Last.Updated[i]), format = "%B %d, %Y",origin='1970-01-01')
+}
+```
+## Current version
+
+Convertir versiones a números
+```{r}
+for (i in 1:length(datos$Current.Ver)){
+  if(datos$Current.Ver[i]!="Varies with device"){
+    datos$Current.Ver[i]<-as.numeric(substr(as.character(datos$Current.Ver[i]),0,3))
+  }
+} 
+```
+Reemplazar los valores nulos con "Varies with device"
+```{r}
+for (i in 1:length(datos$Current.Ver)){
+  if(is.na(datos$Current.Ver[i])){
+    datos$Current.Ver[i]<-"Varies with device"
+  }
+}
+```
+
+```{r}
+w <- as.data.frame(table(datos$Current.Ver))
+w<-w[order(-w$Freq),]
+head(w)
 
 ```
 
