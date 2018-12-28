@@ -10,9 +10,11 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
 ```{r, include=FALSE}
 #install.packages(c("plyr"))
 library("plyr")
+library("tidyr")
 ```
 
 # Lectura de los datos
@@ -30,13 +32,14 @@ str(datos)
 # Limpieza de datos y transformación
 El primer paso será hacer un preprocesamiento de cada uno de los atributos con vista a obtener mejores resultados en los algoritmos de minería de datos
 
-## Size
+## Size --> Tiene Nan
 Se puede obsrevar que los datos del tamaño de las aplicaciones tienen prefijos métricos (Kilo y Mega). Para poder hacer un análisis de datos efectivo, se eliminarán estos símbolos por sus correspondientes equivalencias numéricas.
 Además de estos símbolos hay apps cuyo tamaño varían con el dispositivo ("Varies with devices"), estos ejemplos se sustituirán por valores nulos. Por otro lado, también hay instancias que tienen como valor "1000+", estas se sustituirán por 1000. En resumen, las tareas que se van a realizar son las siguientes:
 
 * Reemplazar "Varies with devices" por NaN
 * Convertir k y M a numérico
 * Pasar 1.000+ a 1000 para hacerlo numérico
+* Los valores NaN se sustituyen por la media de la columna
 
 ```{r}
 for (i in 1:length(datos$Size)) { 
@@ -54,15 +57,34 @@ for (i in 1:length(datos$Size)) {
 }
 
 datos$Size <- as.numeric(datos$Size)
+datos$Size[is.na(datos$Size)] <- mean(datos$Size, na.rm=TRUE)
+```
+
+## Installs
+Convertir "Installs" en numeric
+Removemos el simbolo (+) y luego convertimos a numérico. Comprobamos los cambios.
+
+```{r}
+datos$Installs <- as.numeric(gsub(",", "", gsub("+", "", datos$Installs, fixed = TRUE), fixed=TRUE))
+options("scipen"=100, "digits"=4)
+str(datos$Installs)
+print(unique(datos$Installs))
+##Convertir Nan en 0 porque el Nan viene de una app que es Free
+for (i in 1:length(datos$Installs)) { 
+  if(is.na(datos$Installs[i])){
+    datos$Installs[i]<-0
+  }
+}
+
 
 ```
 
-## Reviews
+## Reviews 
 Comprobaremos si los valores del atributo "Reviews" son de tipo numérico:
 ```{r}
 datos$Reviews <- as.numeric(datos$Reviews)
-
 ```
+
 Se puede observar que al convertir la columna a número, un valor no se ha podido convertir, ya que no había forma. Daremos un vistazo previo a esta fila:
 ```{r}
 for (i in 1:length(datos$Reviews)) {
@@ -74,70 +96,88 @@ for (i in 1:length(datos$Reviews)) {
   }
 }
 
-print(datos[10471:10480,])
 
 ```
 Como solo es una fila, se optará por eliminarla directamente. En la representación de arriba se ve cómo ha desaparecido del dataframe.
 
-## Convertir "Installs" en numeric
 
-Removemos el simbolo (+) y luego convertimos a numerico. Comprobamos los cambios.
-
+## Rating --> Tiene valores NAN
+Se comprueba que los valores están entre 1 y 5. Tiene valores que son NaN, se sustituyen por la media de la columna
 ```{r}
-datos$Installs <- as.numeric(gsub(",", "", gsub("+", "", datos$Installs, fixed = TRUE), fixed=TRUE))
-options("scipen"=100, "digits"=4)
-str(datos$Installs)
-print(unique(datos$Installs))
+print(range(datos$Rating, na.rm = TRUE))
+datos$Rating[is.na(datos$Rating)] <- mean(datos$Rating, na.rm=TRUE)
 ```
 
 
-## Price
+
+## Price 
 ```{r}
 print(unique(datos$Price))
 ```
-Se puede observar que la variable precio tiene un carácter $ que hay que eliminar para poder convertirlo en número. Además, hay varias columnas que tienen valores raros ("Everyone"), estas filas las eliminaremos
+
+Se puede observar que la variable precio tiene un carácter $ que hay que eliminar para poder convertirlo en número. Además, hay varias columnas que tienen valores raros ("Everyone"), estas filas las convertiremos en Nan y posteriormente se sustituirá por la media de precios
+
 ```{r}
 for (i in 1:length(datos$Price)){
   datos$Price[i] <- as.numeric((gsub("\\$","", datos$Price[i])))
 }
+
+datos$Price[is.na(datos$Price)] <- mean(datos$Price, na.rm=TRUE)
+datos$Price <- as.numeric(datos$Price)
 #Eliminar valores NAN
-for (i in 1:length(datos$Price)){
-  if(is.na(datos$Price[i])){
-    print(i)
-    print(datos[i,])
-    datos <- datos[-i,]
-    
-  }
-}
+# for (i in 1:length(datos$Price)){
+#   if(is.na(datos$Price[i])){
+#     print(i)
+#     print(datos[i,])
+#     datos <- datos[-i,]
+#     
+#   }
+# }
 
 ```
 Lo más curioso es que hay aplicaciones que superan los 350 dólares, tal como se puede ver en el histograma a continuación:
 ```{r}
-hist(as.numeric(datos$Price), col="blue1")
-for (i in 1:length(datos$Price)){
-  if(as.numeric(datos$Price[i])>350){
-    print(datos[i,])
-  }
-}
+hist(datos$Price)
 
 ```
+```{r}
+for (i in 1:length(datos$Price)){
+  if(datos$Price[i]>350){
+    print(datos$Price[i])
+  }
+}
+```
+
+
+## Genres
+Esta columna tiene algunos datos que están en el formato __Category;Subcategory__ para poder hacer un estudio más exhaustivo, se va a dividir esta columna en dos, por un lado una columna con la Categoría principal y otra con la subcategoría
+
+```{r, warning=FALSE}
+datos <-separate(data=datos, col = Genres, into = c("Pri_Genre", "Sec_Genre"), sep = ";")
+```
+
 ## Last updated
 Convertir la fecha que está en formato String a Date
 ```{r}
-for (i in 1:length(datos$Last.Updated)){
-  datos$FechaUltima[i]<-as.Date(as.character(datos$Last.Updated[i]), format = "%B %d, %Y",origin='1970-01-01')
-}
+datos$Last.Updated <- as.Date(datos$Last.Updated, format = "%B %d, %Y",origin='1970-01-01')
 ```
-## Current version
 
-Convertir versiones a números
-```{r}
+
+
+
+
+
+
+## Current version
+Convertir versiones a números con el formato número.número
+```{r, warning=FALSE}
 for (i in 1:length(datos$Current.Ver)){
   if(datos$Current.Ver[i]!="Varies with device"){
     datos$Current.Ver[i]<-as.numeric(substr(as.character(datos$Current.Ver[i]),0,3))
   }
 } 
 ```
+
 Reemplazar los valores nulos con "Varies with device"
 ```{r}
 for (i in 1:length(datos$Current.Ver)){
