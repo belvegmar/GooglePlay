@@ -15,6 +15,8 @@ knitr::opts_chunk$set(echo = TRUE)
 #install.packages(c("plyr"))
 library("plyr")
 library("tidyr")
+library("ggplot2")
+library("GGally")
 ```
 
 # Lectura de los datos
@@ -32,7 +34,7 @@ str(datos)
 # Limpieza de datos y transformación
 El primer paso será hacer un preprocesamiento de cada uno de los atributos con vista a obtener mejores resultados en los algoritmos de minería de datos
 
-## Size --> Tiene Nan
+## Size
 Se puede obsrevar que los datos del tamaño de las aplicaciones tienen prefijos métricos (Kilo y Mega). Para poder hacer un análisis de datos efectivo, se eliminarán estos símbolos por sus correspondientes equivalencias numéricas.
 Además de estos símbolos hay apps cuyo tamaño varían con el dispositivo ("Varies with devices"), estos ejemplos se sustituirán por valores nulos. Por otro lado, también hay instancias que tienen como valor "1000+", estas se sustituirán por 1000. En resumen, las tareas que se van a realizar son las siguientes:
 
@@ -64,7 +66,7 @@ datos$Size[is.na(datos$Size)] <- mean(datos$Size, na.rm=TRUE)
 Convertir "Installs" en numeric
 Removemos el simbolo (+) y luego convertimos a numérico. Comprobamos los cambios.
 
-```{r}
+```{r, warning=FALSE}
 datos$Installs <- as.numeric(gsub(",", "", gsub("+", "", datos$Installs, fixed = TRUE), fixed=TRUE))
 options("scipen"=100, "digits"=4)
 str(datos$Installs)
@@ -81,8 +83,9 @@ for (i in 1:length(datos$Installs)) {
 
 ## Reviews 
 Comprobaremos si los valores del atributo "Reviews" son de tipo numérico:
-```{r}
+```{r, warning=FALSE}
 datos$Reviews <- as.numeric(datos$Reviews)
+print(sum(is.na(datos$Reviews)))
 ```
 
 Se puede observar que al convertir la columna a número, un valor no se ha podido convertir, ya que no había forma. Daremos un vistazo previo a esta fila:
@@ -101,7 +104,7 @@ for (i in 1:length(datos$Reviews)) {
 Como solo es una fila, se optará por eliminarla directamente. En la representación de arriba se ve cómo ha desaparecido del dataframe.
 
 
-## Rating --> Tiene valores NAN
+## Rating 
 Se comprueba que los valores están entre 1 y 5. Tiene valores que son NaN, se sustituyen por la media de la columna
 ```{r}
 print(range(datos$Rating, na.rm = TRUE))
@@ -117,7 +120,7 @@ print(unique(datos$Price))
 
 Se puede observar que la variable precio tiene un carácter $ que hay que eliminar para poder convertirlo en número. Además, hay varias columnas que tienen valores raros ("Everyone"), estas filas las convertiremos en Nan y posteriormente se sustituirá por la media de precios
 
-```{r}
+```{r, warning=FALSE}
 for (i in 1:length(datos$Price)){
   datos$Price[i] <- as.numeric((gsub("\\$","", datos$Price[i])))
 }
@@ -154,12 +157,15 @@ Esta columna tiene algunos datos que están en el formato __Category;Subcategory
 
 ```{r, warning=FALSE}
 datos <-separate(data=datos, col = Genres, into = c("Pri_Genre", "Sec_Genre"), sep = ";")
+str(datos)
 ```
+
 
 ## Last updated
 Convertir la fecha que está en formato String a Date
 ```{r}
 datos$Last.Updated <- as.Date(datos$Last.Updated, format = "%B %d, %Y",origin='1970-01-01')
+str(datos)
 ```
 
 
@@ -194,3 +200,73 @@ head(w)
 
 ```
 
+
+
+
+
+
+
+
+
+# Visualización de los datos
+
+
+## Pairplot
+Este tipo de gráficos permite ver si hay alguna relación entre dos o más variables, pudiendo observar si hay una relación directa (cuando una variable crece la otra también) o inversa (cuando una crece, la otra decrece). 
+En el siguiente gráfico se presentará este gráfico para las variables numéricas del conjunto de datos
+```{r}
+columnas_numericas = c("Rating","Reviews", "Size", "Installs", "Price")
+ggpairs(datos[columnas_numericas],
+        title="Relations in numeric data")
+```
+Los coeficientes de correlación no están cercanos ni a 1 ni a -1, más bien a cero, lo que significa que ninguna variable está a priori relacionada con otra
+
+
+## Puntuación media de las aplicaciones
+```{r}
+sprintf("La media de la puntuación es:   %f", mean(datos$Rating))
+
+p<-ggplot(datos, aes(x=Rating)) + 
+  geom_histogram(binwidth = 0.1, fill="red")
+p
+```
+La media de la calificación es de un 4.17, por lo que en general, los usuarios puntúan muy bien las aplicaciones en la Play Store.
+Tampoco se ve que haya diferencia de puntuación entre aplicaciones gratuitas y no
+```{r}
+sprintf("La media de la puntuación de apps Gratuitas es:   %f", mean(datos$Rating[datos$Type=='Free']))
+
+sprintf("La media de la puntuación de apps de Pago es:   %f", mean(datos$Rating[datos$Type!='Free']))
+```
+
+## Mejores categorías
+```{r, fig.width=10, fig.height=10}
+g <- ggplot(datos, aes(datos$Category, datos$Rating)) +
+  geom_violin(scale="width") + theme(axis.text.x = element_text(angle = 85, hjust = 1)) + stat_summary(fun.y=mean, geom="point", shape=15, size=1) + scale_color_brewer(palette = "Dark2") + geom_hline(yintercept = mean(datos$Rating), linetype="dashed", color="red", size = 2)
+print(g)
+```
+
+*Con los puntos negros se observa la media para cada categoría, y la línea roja indica la media de todas las apps. Sabiendo esto, las 3 mejores categorías son __EDUCATION, EVENTS y ART AND DESIGN__ las tres peores son __DATING, TOOLS y VIDEO PLAYERS__
+
+
+## Estrategia de precios
+¿Cómo afecta el precio de las aplicaciones a su puntuación?
+```{r}
+# library
+library(ggplot2)
+library(ggExtra)
+ 
+ 
+# classic plot :
+p=ggplot(datos, aes(x=datos$Price, y=datos$Rating)) +
+      geom_point() +
+      theme(legend.position="none") 
+#+ coord_cartesian(xlim=c(0,10))
+ 
+# with marginal histogram
+p <- ggMarginal(p, type="density")
+ 
+print(p)
+
+
+```
+La mayoría de aplicaciones más valoradas se encuentran en el rango de precios de 0 a 50 dólares.
