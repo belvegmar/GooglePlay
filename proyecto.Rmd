@@ -164,12 +164,9 @@ str(datos)
 ## Last updated
 Convertir la fecha que está en formato String a Date
 ```{r}
+Sys.setlocale("LC_TIME", "C")
 datos$Last.Updated <- as.Date(datos$Last.Updated, format = "%B %d, %Y",origin='1970-01-01')
-str(datos)
 ```
-
-
-
 
 
 
@@ -270,3 +267,72 @@ print(p)
 
 ```
 La mayoría de aplicaciones más valoradas se encuentran en el rango de precios de 0 a 50 dólares.
+
+
+
+
+
+
+# Minería de datos
+En esta parte intentaremos aplicar varios métodos de minería de datos para poder sacar conclusiones a partir de los datos. A continuación se exponen los algoritmos que se utilizarán y cuál es su propósito:
+* __Regresión Lineal__ : el objetivo de este algoritmo es predecir un valor continuo numérico (variable dependiente Y) según otras variables (variables independientes Xs). En este caso, es interesante predecir el atributo Rating en función de otros.
+
+
+## Regresión Logística
+En primer lugar haremos el modelo con validación train-test 
+```{r}
+##https://www.analyticsvidhya.com/blog/2014/12/caret-package-stop-solution-building-predictive-models/
+
+#http://r-statistics.co/Linear-Regression.html
+library(dummies)
+library(caret)
+
+#One hot encoding
+datosAu <- dummy.data.frame(datos, names = c("Category", "Type", "Content.Rating", "Pri_Genre"), sep='.')
+
+
+#Preparar el conjunto de datos eliminando las columnas que no interesan
+borrar <- c("App","Category", "Type", "Content.Rating", "Pri_Genre", "Sec_Genre", "Current.Ver", "Android.Ver", "Last.Updated")
+datosRegresion <- datosAu[ , !(names(datosAu) %in% borrar)]
+
+#Dividir el conjunto de datos en train y test
+set.seed(3456)
+trainIndex <- createDataPartition(datosRegresion$Rating, p = .8, 
+                                  list = FALSE, 
+                                  times = 1)
+datosRegresionTrain <- datosRegresion[ trainIndex,]
+datosRegresionTest  <- datosRegresion[-trainIndex,]
+
+
+#Modelo Regresión Lineal Validación Train Test
+lmFit<-train(Rating~., data = datosRegresionTrain, method = "lm")
+pred <- predict(lmFit, datosRegresionTest)
+modelvalues<-data.frame(obs = datosRegresionTest$Rating, pred=pred)
+
+
+```
+Validación Train Test. El p-value (p-value: <0.0000000000000002) es mucho menor que el valor de significancia, por lo que los datos son estadísticamente buenos.
+```{r}
+summary <- summary(lmFit)
+print(defaultSummary(modelvalues))
+
+```
+
+Otra cosa interesante que se puede hacer cuando se tiene un modelo de regresión es ver qué variable influye más en la variable que se quiere predecir, en este caso, se observa que el __tamaño__ de la app influye mucho en la puntuación final de la app, así como que la app sea de citas o no en segundo lugar
+```{r}
+importancia <- varImp(lmFit)
+plot(importancia)
+```
+
+
+En segundo lugar haremos la validación con K-Cross Validation con k = 10
+```{r}
+ctrl<-trainControl(method = "cv",number = 10)
+
+lmCVFit<-train(Rating ~ ., data = datosRegresion, method = "lm", trControl = ctrl, metric="RMSE")
+
+sum<-summary(lmCVFit)
+print(sum$r.squared)
+```
+
+Se observa que con CV se obtiene un RSquared mayor, lo que significa que el resultado de la predicción es mejor.
