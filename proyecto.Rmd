@@ -17,6 +17,7 @@ library("plyr")
 library("tidyr")
 library("ggplot2")
 library("GGally")
+library("plotly")
 ```
 
 # Lectura de los datos
@@ -24,6 +25,13 @@ library("GGally")
 datos <- read.csv(file="googleplaystore.csv", header=TRUE, sep=",", stringsAsFactors = FALSE)
 
 ```
+
+```{r}
+num <- c(1:10841)
+apps <- c(datos$Category)
+number_of_apps <- data.frame(num, apps)
+```
+
 
 # Echamos un vistazo al dataset
 ```{r}
@@ -153,11 +161,14 @@ for (i in 1:length(datos$Price)){
 
 
 ## Genres
-Esta columna tiene algunos datos que están en el formato __Category;Subcategory__ para poder hacer un estudio más exhaustivo, se va a dividir esta columna en dos, por un lado una columna con la Categoría principal y otra con la subcategoría
+Esta columna tiene algunos datos que están en el formato __Category;Subcategory__ para poder hacer un estudio más exhaustivo, se va a dividir esta columna en dos, por un lado una columna con la Categoría principal y otra con la subcategoría. Luego comprobamos valores unicos.
 
 ```{r, warning=FALSE}
+head(datos$Genres, n = 50)
 datos <-separate(data=datos, col = Genres, into = c("Pri_Genre", "Sec_Genre"), sep = ";")
-str(datos)
+head(datos$Pri_Genre, n = 50)
+head(datos$Sec_Genre) 
+
 ```
 
 
@@ -190,32 +201,35 @@ for (i in 1:length(datos$Current.Ver)){
 }
 ```
 
-```{r}
-w <- as.data.frame(table(datos$Current.Ver))
-w<-w[order(-w$Freq),]
-head(w)
-
-```
-
-
-
-
-
-
-
-
 
 # Visualización de los datos
+
+##Android Market Breakdown
+
+Aqui veremos cuales de las aplicaciones son mas utilizadas por los usuarios. Para esto tenemos que crear un nuevo data frame con la categoria de aplicaciones mas utilizadas.
+
+```{r}
+p <- plot_ly(number_of_apps, labels = ~apps, values = ~num, type = 'pie') %>%
+  layout(title = 'Aplicaciones mas utilizadas segun categoria',
+         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+p
+
+
+```
 
 
 ## Pairplot
 Este tipo de gráficos permite ver si hay alguna relación entre dos o más variables, pudiendo observar si hay una relación directa (cuando una variable crece la otra también) o inversa (cuando una crece, la otra decrece). 
 En el siguiente gráfico se presentará este gráfico para las variables numéricas del conjunto de datos
+
 ```{r}
 columnas_numericas = c("Rating","Reviews", "Size", "Installs", "Price")
 ggpairs(datos[columnas_numericas],
         title="Relations in numeric data")
 ```
+
+
 Los coeficientes de correlación no están cercanos ni a 1 ni a -1, más bien a cero, lo que significa que ninguna variable está a priori relacionada con otra
 
 
