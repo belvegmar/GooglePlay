@@ -1,16 +1,24 @@
 ---
 title: "GooglePlay"
+#runtime: shiny
 author: "Belen_Miguel"
 date: "18 de diciembre de 2018"
 output:
-  html_document: default
-  pdf_document: default
+  html_document:
+    df_print: paged 
+    toc : true
+    toc_float: 
+      collapsed: false
+    number_sections: true 
+    theme: cosmo  
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 ```
 
+# __Metodología seguida__
+![](datos.png)
 ```{r, include=FALSE}
 #install.packages(c("plyr"))
 library("plyr")
@@ -18,28 +26,28 @@ library("tidyr")
 library("ggplot2")
 library("GGally")
 library("plotly")
+library("knitr")
 ```
 
-# Lectura de los datos
-```{r cars}
+# __Lectura de los datos y resumen previo__
+```{r}
 datos <- read.csv(file="googleplaystore.csv", header=TRUE, sep=",", stringsAsFactors = FALSE)
 
 ```
 
-```{r}
+```{r, echo=FALSE}
+datos
+```
+
+```{r, echo = FALSE}
 num <- c(1:10841)
 apps <- c(datos$Category)
 number_of_apps <- data.frame(num, apps)
-```
-
-
-# Echamos un vistazo al dataset
-```{r}
-str(datos)
 
 ```
 
-# Limpieza de datos y transformación
+
+# __Limpieza de datos y transformación__
 El primer paso será hacer un preprocesamiento de cada uno de los atributos con vista a obtener mejores resultados en los algoritmos de minería de datos
 
 ## Size
@@ -68,11 +76,15 @@ for (i in 1:length(datos$Size)) {
 
 datos$Size <- as.numeric(datos$Size)
 datos$Size[is.na(datos$Size)] <- mean(datos$Size, na.rm=TRUE)
+
+print(head(datos$Size))
 ```
 
 ## Installs
-Convertir "Installs" en numeric
-Removemos el simbolo (+) y luego convertimos a numérico. Comprobamos los cambios.
+* Convertir "Installs" en numeric
+* Removemos el simbolo (+) y luego convertimos a numérico.
+
+Comprobamos los cambios.
 
 ```{r, warning=FALSE}
 datos$Installs <- as.numeric(gsub(",", "", gsub("+", "", datos$Installs, fixed = TRUE), fixed=TRUE))
@@ -135,15 +147,7 @@ for (i in 1:length(datos$Price)){
 
 datos$Price[is.na(datos$Price)] <- mean(datos$Price, na.rm=TRUE)
 datos$Price <- as.numeric(datos$Price)
-#Eliminar valores NAN
-# for (i in 1:length(datos$Price)){
-#   if(is.na(datos$Price[i])){
-#     print(i)
-#     print(datos[i,])
-#     datos <- datos[-i,]
-#     
-#   }
-# }
+
 
 ```
 Lo más curioso es que hay aplicaciones que superan los 350 dólares, tal como se puede ver en el histograma a continuación:
@@ -154,7 +158,9 @@ hist(datos$Price)
 ```{r}
 for (i in 1:length(datos$Price)){
   if(datos$Price[i]>350){
-    print(datos$Price[i])
+    print(datos[i,]$App)
+    print(datos[i,]$Price)
+   
   }
 }
 ```
@@ -177,6 +183,7 @@ Convertir la fecha que está en formato String a Date
 ```{r}
 Sys.setlocale("LC_TIME", "C")
 datos$Last.Updated <- as.Date(datos$Last.Updated, format = "%B %d, %Y",origin='1970-01-01')
+head(datos$Last.Updated)
 ```
 
 
@@ -202,13 +209,16 @@ for (i in 1:length(datos$Current.Ver)){
 ```
 
 
-# Visualización de los datos
+# __Visualización de los datos__
 
 ##Android Market Breakdown
 
 Aqui veremos cuales de las aplicaciones son mas utilizadas por los usuarios. Para esto tenemos que crear un nuevo data frame con la categoria de aplicaciones mas utilizadas.
 
 ```{r}
+
+
+
 p <- plot_ly(number_of_apps, labels = ~apps, values = ~num, type = 'pie') %>%
   layout(title = 'Aplicaciones mas utilizadas segun categoria',
          xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
@@ -220,8 +230,17 @@ p
 
 
 ## Pairplot
-Este tipo de gráficos permite ver si hay alguna relación entre dos o más variables, pudiendo observar si hay una relación directa (cuando una variable crece la otra también) o inversa (cuando una crece, la otra decrece). 
-En el siguiente gráfico se presentará este gráfico para las variables numéricas del conjunto de datos
+Este tipo de gráficos permite ver si hay alguna relación entre dos o más variables, pudiendo observar si hay una relación directa (cuando una variable crece la otra también) o inversa (cuando una crece, la otra decrece). Concretamente:
+
+El valor del índice de correlación varía en el intervalo [-1,1], indicando el signo el sentido de la relación:
+
+* Si r = 1, existe una correlación positiva perfecta. El índice indica una dependencia total entre las dos variables denominada relación directa: cuando una de ellas aumenta, la otra también lo hace en proporción constante.
+* Si 0 < r < 1, existe una correlación positiva.
+Si r = 0, no existe relación lineal. Pero esto no necesariamente implica que las variables son independientes: pueden existir todavía relaciones no lineales entre las dos variables.
+* Si -1 < r < 0, existe una correlación negativa.
+* Si r = -1, existe una correlación negativa perfecta. El índice indica una dependencia total entre las dos variables llamada relación inversa: cuando una de ellas aumenta, la otra disminuye en proporción constante.
+
+En la siguiente figura se presentará este gráfico para las variables numéricas del conjunto de datos
 
 ```{r}
 columnas_numericas = c("Rating","Reviews", "Size", "Installs", "Price")
@@ -241,7 +260,7 @@ p<-ggplot(datos, aes(x=Rating)) +
   geom_histogram(binwidth = 0.1, fill="red")
 p
 ```
-La media de la calificación es de un 4.17, por lo que en general, los usuarios puntúan muy bien las aplicaciones en la Play Store.
+La media de la calificación es de un __4.17__, por lo que en general, los usuarios puntúan muy bien las aplicaciones en la Play Store.
 Tampoco se ve que haya diferencia de puntuación entre aplicaciones gratuitas y no
 ```{r}
 sprintf("La media de la puntuación de apps Gratuitas es:   %f", mean(datos$Rating[datos$Type=='Free']))
@@ -280,21 +299,42 @@ print(p)
 
 
 ```
-La mayoría de aplicaciones más valoradas se encuentran en el rango de precios de 0 a 50 dólares.
+La mayoría de aplicaciones más valoradas se encuentran en el rango de precios de __0 a 50__ dólares.
 
 
+## Estrategia de Rating en comparacion con el Size de la aplicacion
+
+¿Afecta el tamaño de la aplicacion al Rating?
 
 
-
-
-# Minería de datos
-En esta parte intentaremos aplicar varios métodos de minería de datos para poder sacar conclusiones a partir de los datos. A continuación se exponen los algoritmos que se utilizarán y cuál es su propósito:
-* __Regresión Lineal__ : el objetivo de este algoritmo es predecir un valor continuo numérico (variable dependiente Y) según otras variables (variables independientes Xs). En este caso, es interesante predecir el atributo Rating en función de otros.
-
-
-## Regresión Logística
-En primer lugar haremos el modelo con validación train-test 
 ```{r}
+datos2 = data.frame(datos)
+
+datos2$Size <- as.numeric(gsub(",", "", gsub("M", "", datos$Size, fixed = TRUE), fixed=TRUE))
+
+library(plotly)
+
+p <- plot_ly(data = datos2, x = ~Size, y = ~Rating)
+
+p
+```
+
+
+Se ve en el gráfico anterior que las apps con mayor puntuación son las que comprenden los 0-20M
+
+
+
+
+# __Minería de datos y validación__
+En esta parte intentaremos aplicar varios métodos de minería de datos para poder sacar conclusiones a partir de los datos. A continuación se exponen los algoritmos que se utilizarán y cuál es su propósito:
+
+* Regresión Lineal : el objetivo de este algoritmo es predecir un valor continuo numérico (variable dependiente Y) según otras variables (variables independientes Xs). En este caso, es interesante predecir el atributo Rating en función de otros.
+
+
+## Regresión Lineal
+![](PeX0r.png)
+En primer lugar haremos el modelo con validación train-test 
+```{r, warning=FALSE}
 ##https://www.analyticsvidhya.com/blog/2014/12/caret-package-stop-solution-building-predictive-models/
 
 #http://r-statistics.co/Linear-Regression.html
@@ -321,16 +361,24 @@ datosRegresionTest  <- datosRegresion[-trainIndex,]
 #Modelo Regresión Lineal Validación Train Test
 lmFit<-train(Rating~., data = datosRegresionTrain, method = "lm")
 pred <- predict(lmFit, datosRegresionTest)
-modelvalues<-data.frame(obs = datosRegresionTest$Rating, pred=pred)
-
+modelvalues<-data.frame(cbind(actuals = datosRegresionTest$Rating, predicteds=pred))
 
 ```
-Validación Train Test. El p-value (p-value: <0.0000000000000002) es mucho menor que el valor de significancia, por lo que los datos son estadísticamente buenos.
+
 ```{r}
-summary <- summary(lmFit)
-print(defaultSummary(modelvalues))
+## Regresión Label Encoder
+library(CatEncoders)
 
 ```
+
+
+```{r}
+print(cor(modelvalues))
+head(modelvalues)
+```
+
+Validación Train Test. El índice de correlación es de un 16,4 %, lo que nos indica que no es una regresión muy buena.
+
 
 Otra cosa interesante que se puede hacer cuando se tiene un modelo de regresión es ver qué variable influye más en la variable que se quiere predecir, en este caso, se observa que el __tamaño__ de la app influye mucho en la puntuación final de la app, así como que la app sea de citas o no en segundo lugar
 ```{r}
@@ -340,7 +388,7 @@ plot(importancia)
 
 
 En segundo lugar haremos la validación con K-Cross Validation con k = 10
-```{r}
+```{r, warning=FALSE}
 ctrl<-trainControl(method = "cv",number = 10)
 
 lmCVFit<-train(Rating ~ ., data = datosRegresion, method = "lm", trControl = ctrl, metric="RMSE")
@@ -348,5 +396,138 @@ lmCVFit<-train(Rating ~ ., data = datosRegresion, method = "lm", trControl = ctr
 sum<-summary(lmCVFit)
 print(sum$r.squared)
 ```
+R-squared = Explained variation / Total variation
 
-Se observa que con CV se obtiene un RSquared mayor, lo que significa que el resultado de la predicción es mejor.
+R-Squared está siempre entre 0 y 100%:
+
+* 0% indica que el model no explica ninguna de la variabilidad de la respuesta del modelo sobre su media.
+
+* 100% indica que el modelo explica toda la variabilidad de los datos con respecto a su media
+
+
+## Clúster atributos numéricos
+Cuando intentamos hacer clústers, los atributos categóricos suponen un problema, ya que el fundamento principal de los algoritmos clúster es la distancia entre instancias. Como primera aproximación, tomaremos las columnas numéricas para intentar definir grupos entre las diferentes aplicaciones.
+```{r}
+numericas <- c("Rating", "Reviews", "Size", "Installs", "Price")
+datosNumericos <- datos[,numericas]
+```
+El principal problema al intentar aplicar algoritmos clúster como el __K-means__ es determinar el valor de K, gracias a librerías como __NbClust__ podemos seleccionar el mejor algoritmo clúster así como los parámetros más adecuados según varias medidas que nos indican cómo de bueno es el clúster. En este caso utilizaremos el índice __Silhouette__ <https://en.wikipedia.org/wiki/Silhouette_(clustering)>
+```{r}
+library(NbClust)
+# Estandarizamos los datos
+datosNumericos <- scale(datosNumericos)
+
+nb <- NbClust(datosNumericos,  distance = "euclidean", min.nc=2, max.nc=15, method = "kmeans", index = "silhouette")
+
+
+sprintf("El mejor número de clúster es:   %f, con un índice Silhouette de %f", nb$Best.nc["Number_clusters"], nb$Best.nc["Value_Index"])
+
+
+
+
+```
+
+```{r}
+si <- c()
+sx <- c()
+library(cluster)
+for (i in 2:20){
+  res <- kmeans(datosNumericos, centers = i)
+  si<-silhouette(res$cluster, dist(datosNumericos))
+  sx <- c(sx, mean(si[,3]))
+}
+
+```
+
+
+```{r}
+cluster <- c(2:20)
+df <- cbind(cluster, sx)
+df <- as.data.frame(df)
+# Veremos con el método Elbow cuál es el mejor número de clústers
+plot <- ggplot(df, aes(x=cluster,y=sx)) + geom_line() + geom_point()
+plot
+```
+
+En la gráfica se puede observar que el mejor índice silhouette se obtiene para k = 2, pero este número de clústers no nos parece adecuado, ya que supone muy pocos grupos. Sin embargo, el valor k = 5 nos parece el más apropiado, ya que a partir de él es cuando los resultados van mejorando poco a poco
+
+```{r}
+#Representación
+library(factoextra)
+km.res4 <- eclust(datosNumericos, "kmeans", k = 5, graph = FALSE)
+fviz_cluster(object=km.res4,data = datosNumericos,geom = "point")
+```
+
+
+## Clustering para datos mixtos
+El algoritmo K-means solo trabaja con variables numéricas continuas. Para datos mixtos (con variables numéricas y categóricas), se usa el algoritmo __k-prototypes__ <https://grid.cs.gsu.edu/~wkim/index_files/papers/kprototype.pdf> que básicamente combina k-means (atributos numéricos) y k-modes (atributos cualitativos).
+```{r}
+#Convertir atritubos cualitativos a factor
+borrar <- c("App","Last.Updated", "Current.Ver", "Android.Ver", "Sec_Genre")
+datosK <- datos[ , !(names(datos) %in% borrar)]
+
+datosK$Category <- as.factor(datosK$Category)
+datosK$Type <- as.factor(datosK$Type)
+datosK$Content.Rating <- as.factor(datosK$Content.Rating)
+datosK$Pri_Genre <- as.factor(datosK$Pri_Genre)
+```
+
+
+
+```{r}
+library(clustMixType)
+library(ggplot2)
+
+#Apply k prototypes
+
+a <- lambdaest(datosK) # da un lambda aproximado
+wss <- c()
+for (i in 2:20){
+  res <- kproto(datosK, k = i, lambda = a, verbose = TRUE)
+  wss <- c(wss, res$tot.withinss)
+}
+
+cluster <- c(2:20)
+df <- cbind(cluster, wss)
+df <- as.data.frame(df)
+# Veremos con el método Elbow cuál es el mejor número de clústers
+plot <- ggplot(df, aes(x=cluster,y=wss)) + geom_line() + geom_point()
+plot
+
+```
+
+```{r}
+library(clustMixType)
+library(ggplot2)
+library(cluster)
+a <- lambdaest(datosK) # da un lambda aproximado
+ss <- c()
+for (i in 2:20){
+  res <- kproto(datosK, k = i, lambda = a, verbose = TRUE)
+  si<-silhouette(res$cluster, dist(datosK))
+  ss <- c(ss, mean(si[,3]))
+}
+
+cluster <- c(2:20)
+df <- cbind(cluster, ss)
+df <- as.data.frame(df)
+# Veremos con el método Elbow cuál es el mejor número de clústers
+plot <- ggplot(df, aes(x=cluster,y=ss)) + geom_line() + geom_point()
+plot
+```
+
+Se prueba con k = 6
+```{r}
+res <- kproto(datosK, k = 6, lambda = a, verbose = TRUE)
+predicted.clusters <- predict(res,datosK)
+print(res$size)
+print(res$tot.withinss)
+```
+
+# __Conclusiones generales__
+
+* Los conjunto de datos que trabajamos diariamente suelen tener atributos mixtos, con algunas variables de tipo numéricas y otras de tipo categóricas. Este ha sido nuestro principal problema en nuestro estudio, ya se han encontrado muy pocas herramientas de minería de datos que acometan este problema en comparación con las técnicas que trabajan con atributos de una sola clase
+* En la mayoría de casos, cuando queremos extraer conocimiento de datos obviamos la fase de preprocesamiento y visualización, porque creemos que no son importantes, en este caso, hemos visto que estas dos etapas son las más importantes, ya que sin ellas no se podrían haber aplicado casi ninguno de los algoritmos que se han probado. 
+* Para un trabajo futuro creemos que sería interesante tener aún más datos, ya que al ser datos tan heterogéneos los resultados de clúster no son muy precisos y creemos que es una herramienta fundamental para poder sacar provecho a la play store y para establecer estrategias de marketing efectivas.
+
+
